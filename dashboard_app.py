@@ -66,8 +66,7 @@ if 'Receipt Date' in df.columns:
 else:
     timeliness_metric = None
 
-# ----------- KPI CARDS -------------
-st.subheader("Import Volume & Value KPIs")
+st.subheader("📦 Import Volume & Value KPIs")
 c1,c2,c3,c4,c5 = st.columns(5)
 c1.metric("Total FOB Value (₦ Million)", f"{total_fob/1_000_000:,.2f}")
 c2.metric("Total CIF Value (₦ Million)", f"{total_cif/1_000_000:,.2f}")
@@ -75,37 +74,16 @@ c3.metric("Avg FOB per Transaction (₦)", f"{avg_fob:,.0f}")
 c4.metric("Avg CIF per Transaction (₦)", f"{avg_cif:,.0f}")
 c5.metric("Avg Mass per Transaction (KG)", f"{avg_mass:,.0f}")
 
-st.subheader("Taxation & Revenue KPIs")
-t1,t2,t3,t4 = st.columns(4)
-t1.metric("Total Tax Collected (₦ Million)", f"{total_tax/1_000_000:,.2f}")
-t2.metric("Avg Tax per Transaction (₦)", f"{avg_tax:,.0f}")
-t3.metric("Tax-to-Value Ratio", f"{tax_to_value_ratio:.2%}")
-t4.metric("Top Tax-Contributing Importers (see chart below)", "")
-
-st.subheader("Logistics & Shipment KPIs")
-l1,l2,l3,l4 = st.columns(4)
-l1.metric("Total Number of Shipments", f"{total_shipments:,}")
-l2.metric("Avg Containers per Importer", f"{avg_containers_per_importer:,.2f}")
-l3.metric("Most Common Container Size", f"{most_common_container_size}")
-l4.metric("Top Countries by Total Weight (see chart below)", "")
-
-st.subheader("Compliance & Processing KPIs")
-cp1,cp2,cp3,cp4 = st.columns(4)
-cp1.metric("No. of Transactions per Custom Office (see chart)", "")
-cp2.metric("Most Frequent HS Codes (see chart)", "")
-cp3.metric("% Imports from High-Risk Countries", f"{pct_high_risk:.2%}")
-if timeliness_metric is not None:
-    cp4.metric("Timeliness of Tax Payments (have receipt date)", f"{timeliness_metric:.2%}")
-
-st.divider()
-
-# ----------- VISUALS -------------
-st.subheader("Top 10 Importing Countries by CIF Value (₦ Million)")
-fig1, ax1 = plt.subplots(figsize=(10,5))
-(top_countries/1_000_000).plot(kind='bar', ax=ax1, color='steelblue')
-ax1.set_ylabel("CIF Value (₦ Million)")
-plt.xticks(rotation=45, ha='right')
-st.pyplot(fig1)
+# Trend over time (CIF)
+if 'Receipt Date' in df.columns:
+    st.subheader("Monthly CIF Value Trend (₦ Million)")
+    df['YearMonth'] = df['Receipt Date'].dt.to_period('M')
+    monthly_cif = df.groupby('YearMonth')['CIF Value (N)'].sum()
+    fig9, ax9 = plt.subplots(figsize=(10,5))
+    (monthly_cif/1_000_000).plot(marker='o', ax=ax9, color='darkorange')
+    ax9.set_ylabel("CIF Value (₦ Million)")
+    plt.xticks(rotation=45, ha='right')
+    st.pyplot(fig9)
 
 st.subheader("Top 10 Importers by Volume (Mass KG)")
 fig2, ax2 = plt.subplots(figsize=(10,5))
@@ -114,12 +92,37 @@ ax2.set_ylabel("Mass (KG)")
 plt.xticks(rotation=45, ha='right')
 st.pyplot(fig2)
 
+st.divider()
+
+st.subheader("💰 Taxation & Revenue KPIs")
+t1,t2,t3,t4 = st.columns(4)
+t1.metric("Total Tax Collected (₦ Million)", f"{total_tax/1_000_000:,.2f}")
+t2.metric("Avg Tax per Transaction (₦)", f"{avg_tax:,.0f}")
+t3.metric("Tax-to-Value Ratio", f"{tax_to_value_ratio:.2%}")
+t4.metric("Top Tax-Contributing Importers (see chart below)", "")
+
+st.subheader("Top 10 Importing Countries by CIF Value (₦ Million)")
+fig1, ax1 = plt.subplots(figsize=(10,5))
+(top_countries/1_000_000).plot(kind='bar', ax=ax1, color='steelblue')
+ax1.set_ylabel("CIF Value (₦ Million)")
+plt.xticks(rotation=45, ha='right')
+st.pyplot(fig1)
+
 st.subheader("Top 10 Tax-Contributing Importers (₦ Million)")
 fig3, ax3 = plt.subplots(figsize=(10,5))
 (top_tax_importers/1_000_000).plot(kind='bar', ax=ax3, color='indianred')
 ax3.set_ylabel("Tax (₦ Million)")
 plt.xticks(rotation=45, ha='right')
 st.pyplot(fig3)
+
+st.divider()
+
+st.subheader("🚢 Logistics & Shipment KPIs")
+l1,l2,l3,l4 = st.columns(4)
+l1.metric("Total Number of Shipments", f"{total_shipments:,}")
+l2.metric("Avg Containers per Importer", f"{avg_containers_per_importer:,.2f}")
+l3.metric("Most Common Container Size", f"{most_common_container_size}")
+l4.metric("Top Countries by Total Weight (see chart below)", "")
 
 st.subheader("Total Weight of Imports by Country of Origin (KG)")
 fig4, ax4 = plt.subplots(figsize=(10,5))
@@ -134,6 +137,16 @@ transactions_per_office.plot(kind='bar', ax=ax5, color='grey')
 ax5.set_ylabel("Transactions")
 plt.xticks(rotation=45, ha='right')
 st.pyplot(fig5)
+
+st.divider()
+
+st.subheader("🛡️ Compliance & Processing KPIs")
+cp1,cp2,cp3,cp4 = st.columns(4)
+cp1.metric("No. of Transactions per Custom Office (see chart)", "")
+cp2.metric("Most Frequent HS Codes (see chart)", "")
+cp3.metric("% Imports from High-Risk Countries", f"{pct_high_risk:.2%}")
+if timeliness_metric is not None:
+    cp4.metric("Timeliness of Tax Payments (have receipt date)", f"{timeliness_metric:.2%}")
 
 st.subheader("Most Frequent HS Codes")
 fig6, ax6 = plt.subplots(figsize=(10,5))
@@ -164,16 +177,3 @@ ax8.set_xlabel("Number of Registered Shipments")
 ax8.set_ylabel("Custom Office")
 plt.xticks(rotation=45, ha='right')
 st.pyplot(fig8)
-
-
-# Trend over time (CIF)
-if 'Receipt Date' in df.columns:
-    st.subheader("Monthly CIF Value Trend (₦ Million)")
-    df['YearMonth'] = df['Receipt Date'].dt.to_period('M')
-    monthly_cif = df.groupby('YearMonth')['CIF Value (N)'].sum()
-    fig9, ax9 = plt.subplots(figsize=(10,5))
-    (monthly_cif/1_000_000).plot(marker='o', ax=ax9, color='darkorange')
-    ax9.set_ylabel("CIF Value (₦ Million)")
-    plt.xticks(rotation=45, ha='right')
-    st.pyplot(fig9)
-
