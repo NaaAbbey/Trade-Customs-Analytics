@@ -27,6 +27,11 @@ st.sidebar.markdown("**Trade & Customs Dashboard**")
 st.sidebar.markdown("Use the controls below to filter data.")
 
 # Sidebar controls
+# Helper to build options with "All"
+def make_options(series):
+    opts = sorted(series.dropna().unique().tolist())
+    return ["All"] + opts
+
 all_countries = list(df['Country  of Origin'].unique())
 options = ["All"] + all_countries
 
@@ -43,15 +48,66 @@ selected_year = st.sidebar.slider(
     value=int(df['Receipt Date'].dt.year.max())
 )
 
-show_heatmap = st.sidebar.checkbox("Show Heatmap", value=True)
+# --- Importers ---
+importer_options = make_options(df['Importer'])
+selected_importers = st.sidebar.multiselect(
+    "Importers",
+    importer_options,
+    default=["All"]
+)
 
+# --- HS Codes ---
+hs_options = make_options(df['HS Code'])
+selected_hs = st.sidebar.multiselect(
+    "HS Codes",
+    hs_options,
+    default=["All"]
+)
+
+# --- Container Size ---
+size_options = make_options(df['Container Size'])
+selected_size = st.sidebar.multiselect(
+    "Container Size",
+    size_options,
+    default=["All"]
+)
+
+# --- Custom Office ---
+office_options = make_options(df['Custom Office'])
+selected_office = st.sidebar.multiselect(
+    "Custom Office",
+    office_options,
+    default=["All"]
+)
+
+# Country filter
 if "All" in selected_countries or not selected_countries:
     filtered_df = df.copy()  # show all
 else:
     filtered_df = df[df['Country  of Origin'].isin(selected_countries)]
 
-st.write("Filtered data:", filtered_df)
+# Importers filter
+if not ("All" in selected_importers or not selected_importers):
+    filtered_df = filtered_df[filtered_df['Importer'].isin(selected_importers)]
 
+# HS Codes filter
+if not ("All" in selected_hs or not selected_hs):
+    filtered_df = filtered_df[filtered_df['HS Code'].isin(selected_hs)]
+
+# Container Size filter
+if not ("All" in selected_size or not selected_size):
+    filtered_df = filtered_df[filtered_df['Container Size'].isin(selected_size)]
+
+# Custom Office filter
+if not ("All" in selected_office or not selected_office):
+    filtered_df = filtered_df[filtered_df['Custom Office'].isin(selected_office)]
+
+# Year filter
+if 'Receipt Date' in filtered_df.columns:
+    filtered_df = filtered_df[filtered_df['Receipt Date'].dt.year == selected_year]
+
+
+st.write(f"Filtered dataset: {len(filtered_df):,} rows")
 
 # ----------- CALCULATIONS -------------
 # 1. Import Volume and Value KPIs
