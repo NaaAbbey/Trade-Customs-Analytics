@@ -21,33 +21,64 @@ df['Container Size'] = df['Container Size'].replace(
     ['unknown', 'Unknown', 'UNKNOWN', '', 'nan', 'None'], pd.NA
 )
 
+# Sidebar title
+st.sidebar.title("Filters")
+st.sidebar.markdown("**Trade & Customs Dashboard**")
+st.sidebar.markdown("Use the controls below to filter data.")
+
+# Sidebar controls
+all_countries = list(df['Country  of Origin'].unique())
+options = ["All"] + all_countries
+
+selected_countries = st.sidebar.multiselect(
+    "Select Countries (or All)",
+    options,
+    default=["All"]  # preselect All
+)
+
+selected_year = st.sidebar.slider(
+    "Select Year",
+    min_value=int(df['Receipt Date'].dt.year.min()),
+    max_value=int(df['Receipt Date'].dt.year.max()),
+    value=int(df['Receipt Date'].dt.year.max())
+)
+
+show_heatmap = st.sidebar.checkbox("Show Heatmap", value=True)
+
+if "All" in selected_countries or not selected_countries:
+    filtered_df = df.copy()  # show all
+else:
+    filtered_df = df[df['Country  of Origin'].isin(selected_countries)]
+
+st.write("Filtered data:", filtered_df)
+
 
 # ----------- CALCULATIONS -------------
 # 1. Import Volume and Value KPIs
-total_fob = df['FOB Value (N)'].sum()
-total_cif = df['CIF Value (N)'].sum()
-avg_fob = df['FOB Value (N)'].mean()
-avg_cif = df['CIF Value (N)'].mean()
-avg_mass = df['Mass(KG)'].mean()
-top_countries = df.groupby('Country  of Origin')['CIF Value (N)'].sum().sort_values(ascending=False).head(10)
-top_importers = df.groupby('Importer')['Mass(KG)'].sum().sort_values(ascending=False).head(10)
+total_fob = filtered_df['FOB Value (N)'].sum()
+total_cif = filtered_df['CIF Value (N)'].sum()
+avg_fob = filtered_df['FOB Value (N)'].mean()
+avg_cif = filtered_df['CIF Value (N)'].mean()
+avg_mass = filtered_df['Mass(KG)'].mean()
+top_countries = filtered_df.groupby('Country  of Origin')['CIF Value (N)'].sum().sort_values(ascending=False).head(10)
+top_importers = filtered_df.groupby('Importer')['Mass(KG)'].sum().sort_values(ascending=False).head(10)
 
 # 2. Taxation & Revenue KPIs
-total_tax = df['Total Tax(N)'].sum()
-avg_tax = df['Total Tax(N)'].mean()
+total_tax = filtered_df['Total Tax(N)'].sum()
+avg_tax = filtered_df['Total Tax(N)'].mean()
 tax_to_value_ratio = total_tax / total_cif if total_cif > 0 else 0
-top_tax_importers = df.groupby('Importer')['Total Tax(N)'].sum().sort_values(ascending=False).head(10)
+top_tax_importers = filtered_df.groupby('Importer')['Total Tax(N)'].sum().sort_values(ascending=False).head(10)
 
 # 3. Logistics and Shipment KPIs
-total_shipments = df['Reg Number'].nunique()
-avg_containers_per_importer = df['Nbr Of Containers'].sum() / df['Importer'].nunique()
-most_common_container_size = df['Container Size'].mode()[0] if df['Container Size'].notna().any() else "N/A"
-total_weight_by_country = df.groupby('Country  of Origin')['Mass(KG)'].sum().sort_values(ascending=False).head(10)
+total_shipments = filtered_df['Reg Number'].nunique()
+avg_containers_per_importer = filtered_df['Nbr Of Containers'].sum() / filtered_df['Importer'].nunique()
+most_common_container_size = filtered_df['Container Size'].mode()[0] if filtered_df['Container Size'].notna().any() else "N/A"
+total_weight_by_country = filtered_df.groupby('Country  of Origin')['Mass(KG)'].sum().sort_values(ascending=False).head(10)
 
 # 4. Compliance and Processing KPIs
-transactions_per_office = df.groupby('Custom Office')['Reg Number'].nunique().sort_values(ascending=False)
-most_frequent_hs = df['HS Code'].value_counts().head(10)
-corr_data = df[["FOB Value (N)", "CIF Value (N)", "Mass(KG)", "Total Tax(N)"]]
+transactions_per_office = filtered_df.groupby('Custom Office')['Reg Number'].nunique().sort_values(ascending=False)
+most_frequent_hs = filtered_df['HS Code'].value_counts().head(10)
+corr_data = filtered_df[["FOB Value (N)", "CIF Value (N)", "Mass(KG)", "Total Tax(N)"]]
 
 # Calculate correlation matrix
 corr_matrix = corr_data.corr(method="pearson")
@@ -55,13 +86,13 @@ corr_matrix = corr_data.corr(method="pearson")
 
 # Example high-risk countries list (customise for your use case)
 high_risk_countries = ['Afghanistan', 'Iran', 'North Korea']
-df['HighRisk'] = df['Country  of Origin'].isin(high_risk_countries)
-pct_high_risk = (df['HighRisk'].sum() / len(df)) if len(df) > 0 else 0
+filtered_df['HighRisk'] = filtered_df['Country  of Origin'].isin(high_risk_countries)
+pct_high_risk = (filtered_df['HighRisk'].sum() / len(filtered_df)) if len(filtered_df) > 0 else 0
 
 # Timeliness of Tax Payments (requires a tax date field)
 # Here we just show % with missing Receipt Date as "late"
-if 'Receipt Date' in df.columns:
-    pct_with_date = df['Receipt Date'].notna().mean()
+if 'Receipt Date' in filtered_df.columns:
+    pct_with_date = filtered_df['Receipt Date'].notna().mean()
     timeliness_metric = pct_with_date
 else:
     timeliness_metric = None
@@ -75,10 +106,10 @@ c4.metric("Avg CIF per Transaction (₦)", f"{avg_cif:,.0f}")
 c5.metric("Avg Mass per Transaction (KG)", f"{avg_mass:,.0f}")
 
 # Trend over time (CIF)
-if 'Receipt Date' in df.columns:
+if 'Receipt Date' in filtered_df.columns:
     st.subheader("Monthly CIF Value Trend (₦ Million)")
-    df['YearMonth'] = df['Receipt Date'].dt.to_period('M')
-    monthly_cif = df.groupby('YearMonth')['CIF Value (N)'].sum()
+    filtered_df['YearMonth'] = filtered_df['Receipt Date'].dt.to_period('M')
+    monthly_cif = filtered_df.groupby('YearMonth')['CIF Value (N)'].sum()
     fig9, ax9 = plt.subplots(figsize=(6,4))
     (monthly_cif/1_000_000).plot(marker='o', ax=ax9, color='darkorange')
     ax9.set_ylabel("CIF Value (₦ Million)")
@@ -164,7 +195,7 @@ st.subheader("Number of Shipments Registered by each Custom Office")
 
 # Aggregate counts
 shipments_by_office = (
-    df.groupby('Custom Office')['Reg Number']
+    filtered_df.groupby('Custom Office')['Reg Number']
     .nunique()  # count unique Reg Numbers
     .sort_values(ascending=False)
     .reset_index(name='Shipments')
