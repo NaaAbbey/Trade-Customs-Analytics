@@ -7,7 +7,7 @@ st.set_page_config(page_title="Nigeria Trade & Customs Dashboard", layout="wide"
 st.title("Nigeria Trade & Customs Analytics Dashboard")
 
 # --- Upload data ---
-df = pd.read_csv(uploaded_file)
+df = pd.read_csv("cleaned_import_data.csv")
 
 # Convert date
 if 'Receipt Date' in df.columns:
