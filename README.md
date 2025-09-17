@@ -16,6 +16,13 @@ To conduct a comprehensive analysis of customs and trade data in order to uncove
 * To develop clear visualizations and policy-relevant insights through dashboards and reports.
 * To assess the effectiveness of current tax structures and provide recommendations for potential improvements based on insights
 
+## Usage
+
+- View the dashboard online: [Live Dashboard](https://trade-customs-analytics-cgrrpmvtgo5mjb9ouv9ey2.streamlit.app/)
+- Or run locally:
+  ```bash
+  streamlit run dashboard_app.py
+  
 ## Data Description  
 * Custom Office: The customs branch where the transaction was registered.
 * Reg Number: Registration number of the import transaction.
@@ -150,6 +157,7 @@ In conclusion, in most cases, importer 11327 imported goods that were more than 
 ## Recommendations
 
 ## Conclusion
+
 
 
 
