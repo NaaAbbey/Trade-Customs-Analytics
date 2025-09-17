@@ -80,15 +80,16 @@ selected_office = st.sidebar.multiselect(
     default=["All"]
 )
 
+# Start with all data
+filtered_df = df.copy()
+
 # Country filter
-if "All" in selected_countries or not selected_countries:
-    filtered_df = df.copy()  # show all
-else:
-    filtered_df = df[df['Country  of Origin'].isin(selected_countries)]
+if not ("All" in selected_countries or not selected_countries):
+    filtered_df = filtered_df[filtered_df['Country  of Origin'].isin(selected_countries)]
 
 # Importers filter
 if not ("All" in selected_importers or not selected_importers):
-    filtered_df = filtered_df[filtered_df['Importer'].isin(selected_importers)]
+    filtered_df = df[filtered_df['Importer'].isin(selected_importers)]
 
 # HS Codes filter
 if not ("All" in selected_hs or not selected_hs):
@@ -106,8 +107,11 @@ if not ("All" in selected_office or not selected_office):
 if 'Receipt Date' in filtered_df.columns:
     filtered_df = filtered_df[filtered_df['Receipt Date'].dt.year == selected_year]
 
+st.markdown(
+    f"**Showing {len(filtered_df):,} of {len(df):,} rows "
+    f"({len(filtered_df)/len(df):.1%})**"
+)
 
-st.write(f"Filtered dataset: {len(filtered_df):,} rows")
 
 # ----------- CALCULATIONS -------------
 # 1. Import Volume and Value KPIs
