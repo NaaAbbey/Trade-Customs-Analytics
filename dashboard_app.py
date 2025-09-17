@@ -32,20 +32,11 @@ def make_options(series):
     opts = sorted(series.dropna().unique().tolist())
     return ["All"] + opts
 
-all_countries = list(df['Country  of Origin'].unique())
-options = ["All"] + all_countries
-
+country_options = make_options(df['Country  of Origin'])
 selected_countries = st.sidebar.multiselect(
     "Select Countries (or All)",
-    options,
+    country_options,
     default=["All"]  # preselect All
-)
-
-selected_year = st.sidebar.slider(
-    "Select Year",
-    min_value=int(df['Receipt Date'].dt.year.min()),
-    max_value=int(df['Receipt Date'].dt.year.max()),
-    value=int(df['Receipt Date'].dt.year.max())
 )
 
 # --- Importers ---
@@ -80,6 +71,20 @@ selected_office = st.sidebar.multiselect(
     default=["All"]
 )
 
+# get all available years from the date column
+years = sorted(df['Receipt Date'].dt.year.dropna().unique())
+
+# create a slider for a year range
+year_min = int(min(years))
+year_max = int(max(years))
+
+selected_years = st.sidebar.slider(
+    "Select Year Range",
+    min_value=year_min,
+    max_value=year_max,
+    value=(year_min, year_max)  # default selects the whole range
+)
+
 # Start with all data
 filtered_df = df.copy()
 
@@ -89,7 +94,7 @@ if not ("All" in selected_countries or not selected_countries):
 
 # Importers filter
 if not ("All" in selected_importers or not selected_importers):
-    filtered_df = df[filtered_df['Importer'].isin(selected_importers)]
+    filtered_df = filtered_df[filtered_df['Importer'].isin(selected_importers)]
 
 # HS Codes filter
 if not ("All" in selected_hs or not selected_hs):
@@ -103,12 +108,20 @@ if not ("All" in selected_size or not selected_size):
 if not ("All" in selected_office or not selected_office):
     filtered_df = filtered_df[filtered_df['Custom Office'].isin(selected_office)]
 
-# Year filter
-if 'Receipt Date' in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df['Receipt Date'].dt.year == selected_year]
+start_year, end_year = selected_years
 
+if 'Receipt Date' in filtered_df.columns:
+    filtered_df = filtered_df[
+        (
+            (filtered_df['Receipt Date'].dt.year >= start_year) &
+            (filtered_df['Receipt Date'].dt.year <= end_year)
+        )
+        |
+        (filtered_df['Receipt Date'].isna())  # <--- include missing dates
+    ]
+    
 st.markdown(
-    f"**Showing {len(filtered_df):,} of {len(df):,} rows "
+    f"**Showing {len(filtered_df):,} of {len(df):,} rows from {start_year} to {end_year}"
     f"({len(filtered_df)/len(df):.1%})**"
 )
 
